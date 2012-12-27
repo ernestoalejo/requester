@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"net/http"
 	"net/http/httputil"
-	"os"
 	"sync"
 	"time"
 )
@@ -15,6 +14,7 @@ import (
 var (
 	queue  = make(chan *Action, 50)
 	wait   = make(chan bool)
+	slot   chan bool
 	client = &http.Client{}
 
 	queueMutex = &sync.Mutex{}
@@ -24,30 +24,29 @@ var (
 	processed    = 0
 )
 
-func InitLibrary() error {
-	if err := initLoggers(); err != nil {
-		return err
-	}
-
-	if err := os.MkdirAll("cache", 0766); err != nil {
-		return err
-	}
-
-	go handler()
-
-	return nil
-}
-
 func handler() {
 	for {
+		<-slot
+
 		action := <-queue
 
 		go func() {
+			start := time.Now()
+
 			if !cache(action) {
 				perform(action)
 				saveCache(action)
 			}
 			process(action)
+
+			ns := time.Since(start).Nanoseconds()
+			min := 1 * 60 * 1e9 / config.MaxMinute
+			if ns < min {
+				actionsLogger.Printf("[%d] Throttled %d ms", action.Id,
+					(min-ns)/1000000)
+				time.Sleep(time.Duration(min-ns) * time.Nanosecond)
+			}
+			slot <- true
 		}()
 	}
 }
