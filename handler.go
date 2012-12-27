@@ -14,15 +14,19 @@ import (
 
 var (
 	queue  = make(chan *Action, 50)
-	wait   = make(chan bool)
 	slot   chan bool
 	client = &http.Client{}
+
+	wait     = make(chan bool)
+	waitData = make(chan bool)
 
 	queueMutex = &sync.Mutex{}
 	queueCount = 0
 
 	processMutex = &sync.Mutex{}
 	processed    = 0
+
+	saveRequest = make(chan bool, 100)
 )
 
 func handler() {
@@ -79,7 +83,8 @@ func perform(action *Action) {
 
 	s := "===================================================================="
 
-	netLogger.Printf("$REQUEST$\n%s\n\n%s\n\n%s\n\n\n\n", reqDump, s, resDump)
+	netLogger.Printf("$REQUEST [%d]$\n%s\n\n%s\n\n%s\n\n\n\n", action.Id,
+		reqDump, s, resDump)
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -110,9 +115,11 @@ func process(action *Action) {
 	queueMutex.Lock()
 	queueCount--
 	if queueCount == 0 {
-		wait <- true
+		waitData <- true
 	}
 	queueMutex.Unlock()
+
+	saveRequest <- true
 }
 
 func queueAgain(action *Action, err error) {

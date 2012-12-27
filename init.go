@@ -14,6 +14,7 @@ func InitLibrary() error {
 	}
 
 	go handler()
+	go data()
 
 	return nil
 }

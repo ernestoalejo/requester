@@ -25,6 +25,13 @@ type Config struct {
 
 	// Max failed retries to obtain a page before exiting the program
 	MaxRetries int
+
+	// Max number of process that can be marked as manual review
+	// before exiting the app
+	MaxReviews int
+
+	// Global data to save periodically to disk
+	AppData interface{}
 }
 
 func ApplyConfig(c *Config) {
