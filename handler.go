@@ -1,6 +1,7 @@
 package requester
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"math"
@@ -61,6 +62,11 @@ func perform(action *Action) {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		queueAgain(action, fmt.Errorf("action code not ok: %s", resp.Status))
+		return
+	}
+
 	reqDump, err := httputil.DumpRequestOut(action.Req, config.LogBody)
 	if err != nil {
 		log.Fatal(err)
@@ -92,13 +98,14 @@ func process(action *Action) {
 	}
 
 	actionsLogger.Printf("[%d] Processing response... \n", action.Id)
-	if err := config.Processor(action.Body); err != nil {
+	if err := config.Processor(action); err != nil {
 		queueAgain(action, err)
 	}
 	actionsLogger.Printf("[%d] Processing done! \n", action.Id)
 
 	processed++
-	log.Printf("[%d] Pending %d requests in queue \n", processed, queueCount)
+	log.Printf("[%d -> %d] Pending %d requests in queue \n", action.Id,
+		processed, queueCount)
 
 	queueMutex.Lock()
 	queueCount--

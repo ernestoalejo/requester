@@ -4,7 +4,7 @@ var (
 	config *Config
 )
 
-type ProcessorFunc func(response string) error
+type ProcessorFunc func(action *Action) error
 
 type Config struct {
 	// Max request / minute the app can make to the server

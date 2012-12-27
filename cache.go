@@ -6,12 +6,13 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 )
 
 func cache(action *Action) bool {
-	name := buildCacheName(action.Req.URL.String())
+	name := buildCacheName(action.Req)
 	f, err := os.Open(filepath.Join("cache", name))
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -28,13 +29,13 @@ func cache(action *Action) bool {
 
 	action.Body = string(read)
 
-	actionsLogger.Printf("[%d] Request read from cache \n", action.Id)
+	actionsLogger.Printf("[%d] Request read from cache: %s \n", action.Id, name)
 
 	return true
 }
 
 func saveCache(action *Action) {
-	name := buildCacheName(action.Req.URL.String())
+	name := buildCacheName(action.Req)
 	f, err := os.Create(filepath.Join("cache", name))
 	if err != nil {
 		log.Fatal(err)
@@ -44,8 +45,8 @@ func saveCache(action *Action) {
 	fmt.Fprint(f, action.Body)
 }
 
-func buildCacheName(source string) string {
+func buildCacheName(req *http.Request) string {
 	h := md5.New()
-	io.WriteString(h, source)
+	io.WriteString(h, req.URL.String())
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
