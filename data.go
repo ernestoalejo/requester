@@ -38,6 +38,10 @@ func data() {
 }
 
 func loadData() {
+	if config == nil {
+		return
+	}
+
 	f, err := os.Open("db")
 	if err != nil {
 		if os.IsNotExist(err) {
