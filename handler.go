@@ -38,7 +38,7 @@ func handler() {
 		go func() {
 			start := time.Now()
 
-			cahed := true
+			cached := true
 			if !cache(action) {
 				perform(action)
 				saveCache(action)
