@@ -38,18 +38,22 @@ func handler() {
 		go func() {
 			start := time.Now()
 
+			cahed := true
 			if !cache(action) {
 				perform(action)
 				saveCache(action)
+				cached = false
 			}
 			process(action)
 
-			ns := time.Since(start).Nanoseconds()
-			min := 1 * 60 * 1e9 / config.MaxMinute
-			if ns < min {
-				actionsLogger.Printf("[%d] Throttled %d ms", action.Id,
-					(min-ns)/1000000)
-				time.Sleep(time.Duration(min-ns) * time.Nanosecond)
+			if !cached {
+				ns := time.Since(start).Nanoseconds()
+				min := 1 * 60 * 1e9 / config.MaxMinute
+				if ns < min {
+					actionsLogger.Printf("[%d] Throttled %d ms", action.Id,
+						(min-ns)/1000000)
+					time.Sleep(time.Duration(min-ns) * time.Nanosecond)
+				}
 			}
 			slot <- true
 		}()

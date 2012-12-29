@@ -1,3 +1,2 @@
 
  * Wait for the retying failed requests before exiting.
- * Don't limit the throutput of requests obtained from cache.
