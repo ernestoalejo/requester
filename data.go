@@ -8,7 +8,7 @@ import (
 )
 
 func data() {
-	loadData()
+	LoadData()
 
 	r := 0
 	ticker := time.NewTicker(3 * time.Second)
@@ -37,10 +37,14 @@ func data() {
 	wait <- true
 }
 
-func loadData() {
+func LoadData() {
 	if config == nil {
 		return
 	}
+	if config.loaded {
+		return
+	}
+	config.loaded = true
 
 	f, err := os.Open("db")
 	if err != nil {

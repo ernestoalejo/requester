@@ -32,6 +32,8 @@ type Config struct {
 
 	// Global data to save periodically to disk
 	AppData interface{}
+
+	loaded bool
 }
 
 func ApplyConfig(c *Config) {
