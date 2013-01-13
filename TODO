@@ -1,2 +1,4 @@
 
+ * Wait to save the global data before exiting.
+
  * Wait for the retying failed requests before exiting.

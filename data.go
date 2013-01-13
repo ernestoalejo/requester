@@ -7,15 +7,20 @@ import (
 	"time"
 )
 
-func data() {
-	LoadData()
+var (
+	saveDataRequest = make(chan bool, 100)
 
+	shutdownData = make(chan bool)
+	waitData     = make(chan bool)
+)
+
+func data() {
 	r := 0
 	ticker := time.NewTicker(3 * time.Second)
 	exit := false
 	for !exit {
 		select {
-		case <-saveRequest:
+		case <-saveDataRequest:
 			r++
 			continue
 
@@ -24,7 +29,7 @@ func data() {
 				continue
 			}
 
-		case <-waitData:
+		case <-shutdownData:
 			exit = true
 		}
 
@@ -34,7 +39,7 @@ func data() {
 	}
 
 	ticker.Stop()
-	wait <- true
+	waitData <- true
 }
 
 func LoadData() {

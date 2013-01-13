@@ -35,19 +35,3 @@ type Config struct {
 
 	loaded bool
 }
-
-func ApplyConfig(c *Config) {
-	if GetCounter(COUNTER_REQUESTS).Value() != 0 {
-		panic("cannot change config while executing")
-	}
-	config = c
-
-	if config.MaxMinute < config.MaxSimultaneous {
-		panic("config not safe: max/min should be equal or greater than simultaneous")
-	}
-
-	slot = make(chan bool, config.MaxSimultaneous)
-	for i := int64(0); i < config.MaxSimultaneous; i++ {
-		slot <- true
-	}
-}

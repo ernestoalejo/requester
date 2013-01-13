@@ -23,8 +23,8 @@ func Request(req *http.Request) {
 
 	actionsLogger.Printf("[%d] Enqueue request to %s", action.Id, req.URL.String())
 
-	GetCounter(COUNTER_REQUESTS).Increment()
-	queue <- action
+	waitQueue.Add(1)
+	go enqueueAction(action)
 }
 
 func GET(url string) *http.Request {
@@ -37,6 +37,8 @@ func GET(url string) *http.Request {
 }
 
 func WaitEmptyQueue() {
-	<-wait
+	waitQueue.Wait()
+	shutdownData <- true
+	<-waitData
 	log.Println("Work finished!")
 }

@@ -13,48 +13,35 @@ import (
 )
 
 var (
-	queue  = make(chan *Action, 50)
-	slot   chan bool
-	client = &http.Client{}
-
+	queue        = make(chan *Action)
+	client       = &http.Client{}
 	processMutex = &sync.Mutex{}
-
-	wait     = make(chan bool)
-	waitData = make(chan bool)
-
-	saveRequest = make(chan bool, 100)
-
-	waitProcessed = sync.WaitGroup{}
+	waitQueue    = sync.WaitGroup{}
 )
 
-func handler() {
-	for {
-		<-slot
+func worker() {
+	action := <-queue
+	handleAction(action)
+}
 
-		action := <-queue
+func handleAction(action *Action) {
+	start := time.Now()
 
-		go func() {
-			start := time.Now()
+	cached := true
+	if !cache(action) {
+		perform(action)
+		saveCache(action)
+		cached = false
+	}
+	process(action)
 
-			cached := true
-			if !cache(action) {
-				perform(action)
-				saveCache(action)
-				cached = false
-			}
-			process(action)
-
-			if !cached {
-				ns := time.Since(start).Nanoseconds()
-				min := 1 * 60 * 1e9 / config.MaxMinute
-				if ns < min {
-					actionsLogger.Printf("[%d] Throttled %d ms", action.Id,
-						(min-ns)/1000000)
-					time.Sleep(time.Duration(min-ns) * time.Nanosecond)
-				}
-			}
-			slot <- true
-		}()
+	if !cached {
+		ns := time.Since(start).Nanoseconds()
+		min := 1 * 60 * 1e9 / config.MaxMinute
+		if ns < min {
+			actionsLogger.Printf("[%d] Throttled %d ms", action.Id, (min-ns)/1e6)
+			time.Sleep(time.Duration(min-ns) * time.Nanosecond)
+		}
 	}
 }
 
@@ -63,8 +50,6 @@ func perform(action *Action) {
 
 	resp, err := client.Do(action.Req)
 	if err != nil {
-		queueAgain(action, err)
-		return
 	}
 	defer resp.Body.Close()
 
@@ -75,12 +60,14 @@ func perform(action *Action) {
 
 	reqDump, err := httputil.DumpRequestOut(action.Req, config.LogBody)
 	if err != nil {
-		log.Fatal(err)
+		queueAgain(action, err)
+		return
 	}
 
 	resDump, err := httputil.DumpResponse(resp, config.LogBody)
 	if err != nil {
-		log.Fatal(err)
+		queueAgain(action, err)
+		return
 	}
 
 	s := "===================================================================="
@@ -90,9 +77,9 @@ func perform(action *Action) {
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal(err)
+		queueAgain(action, err)
+		return
 	}
-
 	action.Body = string(body)
 
 	actionsLogger.Printf("[%d] Request done!\n", action.Id)
@@ -107,19 +94,17 @@ func process(action *Action) {
 	actionsLogger.Printf("[%d] Processing response... \n", action.Id)
 	if err := config.Processor(action); err != nil {
 		queueAgain(action, err)
+		return
 	}
 	actionsLogger.Printf("[%d] Processing done! \n", action.Id)
 
 	processed := GetCounter(COUNTER_PROCESSED).Increment()
-	queueCount := GetCounter(COUNTER_REQUESTS).Value()
+	queueCount := GetCounter(COUNTER_REQUESTS).Decrement()
 	log.Printf("[%d -> %d] Pending %d requests in queue \n", action.Id,
 		processed, queueCount)
 
-	queueCount = GetCounter(COUNTER_REQUESTS).Decrement()
-	if queueCount == 0 {
-		waitData <- true
-	}
-	saveRequest <- true
+	saveDataRequest <- true
+	waitQueue.Done()
 }
 
 func queueAgain(action *Action, err error) {
@@ -129,17 +114,20 @@ func queueAgain(action *Action, err error) {
 			action.Req.URL.String())
 	}
 
+	secs := math.Pow(2, float64(action.Retry))*100 + float64(rand.Int()%1000)
+
 	errLogger.Printf("[%d] Action failed [Retry %d] [%s]: %s\n", action.Id,
 		action.Retry, action.Req.URL.String(), err)
+	actionsLogger.Printf("[%d] Retrying in %d milliseconds (Retry %d)...\n",
+		action.Id, int(secs), action.Retry)
 
-	GetCounter(COUNTER_REQUESTS).Increment()
 	go func() {
-		secs := math.Pow(2, float64(action.Retry))*100 + float64(rand.Int()%1000)
-
-		actionsLogger.Printf("[%d] Retrying in %d milliseconds (Retry %d)...\n",
-			action.Id, int(secs), action.Retry)
-
 		time.Sleep(time.Duration(secs) * time.Millisecond)
-		queue <- action
+		enqueueAction(action)
 	}()
+}
+
+func enqueueAction(action *Action) {
+	GetCounter(COUNTER_REQUESTS).Increment()
+	queue <- action
 }
