@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-var errLogger, actionsLogger, netLogger, manualLogger *log.Logger
+var errLogger, actionsLogger, netLogger *log.Logger
 
 func initLoggers() error {
 	f, err := os.Create("errors.log")
@@ -25,12 +25,6 @@ func initLoggers() error {
 		return err
 	}
 	netLogger = log.New(f, "", log.Ldate|log.Ltime)
-
-	f, err = os.Create("manual.log")
-	if err != nil {
-		return err
-	}
-	manualLogger = log.New(f, "", log.Ldate|log.Ltime)
 
 	return nil
 }
