@@ -108,6 +108,8 @@ func process(action *Action) {
 }
 
 func queueAgain(action *Action, err error) {
+	deleteCache(action)
+
 	action.Retry++
 	if action.Retry > config.MaxRetries {
 		log.Fatalf("[%d] Max retries reached [%s]\n", action.Id,

@@ -45,6 +45,13 @@ func saveCache(action *Action) {
 	fmt.Fprint(f, action.Body)
 }
 
+func deleteCache(action *Action) {
+	name := buildCacheName(action.Req)
+	if err := os.Remove(filepath.Join("cache", name)); err != nil {
+		log.Fatal(err)
+	}
+}
+
 func buildCacheName(req *http.Request) string {
 	h := md5.New()
 	io.WriteString(h, req.URL.String())
