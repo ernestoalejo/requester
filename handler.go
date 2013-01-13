@@ -20,8 +20,10 @@ var (
 )
 
 func worker() {
-	action := <-queue
-	handleAction(action)
+	for {
+		action := <-queue
+		handleAction(action)
+	}
 }
 
 func handleAction(action *Action) {
