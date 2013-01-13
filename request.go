@@ -15,19 +15,15 @@ type Action struct {
 }
 
 func Request(req *http.Request) {
-	queueMutex.Lock()
-
 	curId++
 	action := &Action{
 		Id:  curId,
 		Req: req,
 	}
 
-	queueCount++
-	queueMutex.Unlock()
-
 	actionsLogger.Printf("[%d] Enqueue request to %s", action.Id, req.URL.String())
 
+	GetCounter(COUNTER_REQUESTS).Increment()
 	queue <- action
 }
 

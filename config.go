@@ -37,8 +37,8 @@ type Config struct {
 }
 
 func ApplyConfig(c *Config) {
-	if queueCount != 0 {
-		panic("cannot change config while it's running")
+	if GetCounter(COUNTER_REQUESTS).Value() != 0 {
+		panic("cannot change config while executing")
 	}
 	config = c
 

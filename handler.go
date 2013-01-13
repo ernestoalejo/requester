@@ -17,16 +17,14 @@ var (
 	slot   chan bool
 	client = &http.Client{}
 
+	processMutex = &sync.Mutex{}
+
 	wait     = make(chan bool)
 	waitData = make(chan bool)
 
-	queueMutex = &sync.Mutex{}
-	queueCount = 0
-
-	processMutex = &sync.Mutex{}
-	processed    = 0
-
 	saveRequest = make(chan bool, 100)
+
+	waitProcessed = sync.WaitGroup{}
 )
 
 func handler() {
@@ -112,17 +110,15 @@ func process(action *Action) {
 	}
 	actionsLogger.Printf("[%d] Processing done! \n", action.Id)
 
-	processed++
+	processed := GetCounter(COUNTER_PROCESSED).Increment()
+	queueCount := GetCounter(COUNTER_REQUESTS).Value()
 	log.Printf("[%d -> %d] Pending %d requests in queue \n", action.Id,
 		processed, queueCount)
 
-	queueMutex.Lock()
-	queueCount--
+	queueCount = GetCounter(COUNTER_REQUESTS).Decrement()
 	if queueCount == 0 {
 		waitData <- true
 	}
-	queueMutex.Unlock()
-
 	saveRequest <- true
 }
 
@@ -136,7 +132,7 @@ func queueAgain(action *Action, err error) {
 	errLogger.Printf("[%d] Action failed [Retry %d] [%s]: %s\n", action.Id,
 		action.Retry, action.Req.URL.String(), err)
 
-	queueCount++
+	GetCounter(COUNTER_REQUESTS).Increment()
 	go func() {
 		secs := math.Pow(2, float64(action.Retry))*100 + float64(rand.Int()%1000)
 
