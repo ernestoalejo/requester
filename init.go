@@ -13,11 +13,15 @@ func InitLibrary(c *Config) error {
 		return fmt.Errorf("config not safe: max/min should be >= than simultaneous")
 	}
 
-	if err := initLoggers(); err != nil {
+	if err := os.MkdirAll("cache", 0766); err != nil {
 		return err
 	}
 
-	if err := os.MkdirAll("cache", 0766); err != nil {
+	if err := os.MkdirAll("loggers", 0766); err != nil {
+		return err
+	}
+
+	if err := initLoggers(); err != nil {
 		return err
 	}
 
