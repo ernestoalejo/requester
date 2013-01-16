@@ -48,6 +48,10 @@ func saveCache(action *Action) {
 func deleteCache(action *Action) {
 	name := buildCacheName(action.Req)
 	if err := os.Remove(filepath.Join("cache", name)); err != nil {
+		if os.IsNotExist(err) {
+			return
+		}
+
 		log.Fatal(err)
 	}
 }
