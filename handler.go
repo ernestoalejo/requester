@@ -39,7 +39,7 @@ func handleAction(action *Action) {
 
 	if !cached {
 		ns := time.Since(start).Nanoseconds()
-		min := 1 * 60 * 1e9 / config.MaxMinute
+		min := 1 * 60 * 1e9 / (config.MaxMinute * config.MaxSimultaneous)
 		if ns < min {
 			actionsLogger.Printf("[%d] Throttled %d ms", action.Id, (min-ns)/1e6)
 			time.Sleep(time.Duration(min-ns) * time.Nanosecond)
