@@ -16,7 +16,7 @@ var (
 
 func data() {
 	r := 0
-	ticker := time.NewTicker(15 * time.Second)
+	ticker := time.NewTicker(30 * time.Second)
 	exit := false
 	for !exit {
 		select {
