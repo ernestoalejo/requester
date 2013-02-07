@@ -26,7 +26,3 @@ type Config struct {
 	// Max failed retries to obtain a page before ignoring it
 	MaxRetries int
 }
-
-func SetConfig(c *Config) {
-	config = c
-}
