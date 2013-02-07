@@ -2,62 +2,59 @@ package requester
 
 import (
 	"crypto/md5"
+	"encoding/gob"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"log"
-	"net/http"
 	"os"
 	"path/filepath"
 )
 
-func cache(action *Action) bool {
-	name := buildCacheName(action.Req)
-	f, err := os.Open(filepath.Join("cache", name))
+func cachedResponse(req *Request) (*Response, bool) {
+	f, err := os.Open(filepath.Join("cache", cacheName(req)))
 	if err != nil {
-		if os.IsNotExist(err) {
-			return false
+		if !os.IsNotExist(err) {
+			errLogger.Printf("[%d] Cache read failed [%s]: %s\n", req.Id, err)
 		}
-		log.Fatal(err)
+		return nil, false
 	}
 	defer f.Close()
 
-	read, err := ioutil.ReadAll(f)
-	if err != nil {
-		log.Fatal(err)
+	resp := &Response{}
+	if err := gob.NewDecoder(f).Decode(resp); err != nil {
+		errLogger.Printf("[%d] Cache decoding failed [%s]: %s\n", req.Id, err)
 	}
 
-	action.Body = string(read)
+	actionsLogger.Printf("[%d] Request read from cache: %s \n", req.Id,
+		cacheName(req))
 
-	actionsLogger.Printf("[%d] Request read from cache: %s \n", action.Id, name)
-
-	return true
+	return resp, true
 }
 
-func saveCache(action *Action) {
-	name := buildCacheName(action.Req)
-	f, err := os.Create(filepath.Join("cache", name))
+func saveCache(req *Request, resp *Response) {
+	f, err := os.Create(filepath.Join("cache", cacheName(req)))
 	if err != nil {
-		log.Fatal(err)
+		errLogger.Printf("[%d] Cache write failed [%s]: %s\n", req.Id, err)
+		return
 	}
 	defer f.Close()
 
-	fmt.Fprint(f, action.Body)
+	if err := gob.NewEncoder(f).Encode(resp); err != nil {
+		errLogger.Printf("[%d] Cache encoding failed [%s]: %s\n", req.Id, err)
+	}
 }
 
-func deleteCache(action *Action) {
-	name := buildCacheName(action.Req)
-	if err := os.Remove(filepath.Join("cache", name)); err != nil {
+func deleteCache(req *Request) {
+	if err := os.Remove(filepath.Join("cache", cacheName(req))); err != nil {
 		if os.IsNotExist(err) {
 			return
 		}
 
-		log.Fatal(err)
+		errLogger.Printf("[%d] Cache delete failed [%s]: %s\n", req.Id, err)
 	}
 }
 
-func buildCacheName(req *http.Request) string {
+func cacheName(req *Request) string {
 	h := md5.New()
-	io.WriteString(h, req.URL.String())
+	io.WriteString(h, req.URL())
 	return fmt.Sprintf("%x", h.Sum(nil))
 }

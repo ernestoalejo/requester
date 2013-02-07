@@ -1,44 +1,28 @@
 package requester
 
 import (
-	"log"
 	"net/http"
 )
 
-var curId int
-
-type Action struct {
+type Request struct {
 	Id    int
 	Req   *http.Request
 	Retry int
-	Body  string
 }
 
-func Request(req *http.Request) {
-	curId++
-	action := &Action{
-		Id:  curId,
-		Req: req,
-	}
-
-	actionsLogger.Printf("[%d] Enqueue request to %s", action.Id, req.URL.String())
-
-	waitQueue.Add(1)
-	go enqueueAction(action)
-}
-
-func GET(url string) *http.Request {
+func GET(url string) *Request {
 	r, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
-	return r
+	return &Request{Req: r}
 }
 
-func WaitEmptyQueue() {
-	waitQueue.Wait()
-	shutdownData <- true
-	<-waitData
-	log.Println("Work finished!")
+func (r *Request) Send() {
+	addQueue(r)
+}
+
+func (r *Request) URL() string {
+	return r.Req.URL.String()
 }

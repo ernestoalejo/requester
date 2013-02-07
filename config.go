@@ -4,34 +4,29 @@ var (
 	config *Config
 )
 
-type ProcessorFunc func(action *Action) error
+type ProcessorFunc func(r *Request, w *Response) error
 
 type Config struct {
-	// Max request / minute the app can make to the server
+	// Max requests per minute the app can make to the server
 	MaxMinute int64
 
-	// Max simultaneos request the app can have opened
+	// Max simultaneos request the app can have opened at the same time
 	// to the server
 	MaxSimultaneous int64
-
-	// True to avoid having a mutex before entering the processor
-	ThreadSafe bool
 
 	// The processor function
 	Processor ProcessorFunc
 
-	// Whether to log the request and response body from the server in the HTTP log
+	// Enables the logging of network requests and responses
+	LogNet bool
+
+	// Enables the logging of the body of the requests & responses
 	LogBody bool
 
-	// Max failed retries to obtain a page before exiting the program
+	// Max failed retries to obtain a page before ignoring it
 	MaxRetries int
+}
 
-	// Max number of process that can be marked as manual review
-	// before exiting the app
-	MaxReviews int
-
-	// Global data to save periodically to disk
-	AppData interface{}
-
-	loaded bool
+func SetConfig(c *Config) {
+	config = c
 }

@@ -5,7 +5,6 @@ import (
 )
 
 const (
-	COUNTER_REQUESTS  = "requests"
 	COUNTER_PROCESSED = "processed"
 )
 
