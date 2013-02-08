@@ -25,4 +25,8 @@ type Config struct {
 
 	// Max failed retries to obtain a page before ignoring it
 	MaxRetries int
+
+	// Max DB operations the program will save in memory before commiting
+	// all of them
+	BufferedOperations int
 }
