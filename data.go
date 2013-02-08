@@ -1,7 +1,10 @@
 package requester
 
 import (
+	"bytes"
 	"database/sql"
+	"encoding/gob"
+	"log"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -69,7 +72,7 @@ func SetData(data Data) {
 
 	buf := bytes.NewBuffer(nil)
 	if err := gob.NewEncoder(buf).Encode(data); err != nil {
-		return err
+		log.Fatal(err)
 	}
 
 	if _, err := stmt.Exec(data.Key(), buf.Bytes()); err != nil {

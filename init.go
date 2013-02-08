@@ -1,7 +1,6 @@
 package requester
 
 import (
-	"fmt"
 	"log"
 	"os"
 )
