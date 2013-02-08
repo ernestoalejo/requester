@@ -13,13 +13,16 @@ import (
 
 var client = &http.Client{}
 
+// Executed in parallel by the init module when starting the library
+// It handles the request and iterates
+// TODO: Wait for a task before handling it
 func worker() {
 	for {
-		handleRequest(popQueue())
+		errWrapper(handleRequest(popQueue()))
 	}
 }
 
-func handleRequest(req *Request) {
+func handleRequest(req *Request) error {
 	start := time.Now()
 
 	resp, cached := cachedResponse(req)
@@ -43,6 +46,8 @@ func handleRequest(req *Request) {
 			time.Sleep(time.Duration(min-ns) * time.Nanosecond)
 		}
 	}
+
+	return nil
 }
 
 func performRequest(req *Request) *Response {

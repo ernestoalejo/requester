@@ -24,3 +24,9 @@ func Error(original error) error {
 func Errorf(format string, args ...interface{}) error {
 	return Error(fmt.Errorf(format, args...))
 }
+
+func errWrapper(err error) {
+	if err != nil {
+		// TODO: Send the error by the right channel
+	}
+}

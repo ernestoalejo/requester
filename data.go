@@ -27,7 +27,7 @@ func initDB() error {
 	var err error
 	db, err = sql.Open("sqlite3", "./data.db")
 	if err != nil {
-		return err
+		return Error(err)
 	}
 
 	_, err = db.Exec(`
@@ -37,19 +37,22 @@ func initDB() error {
 		)
 	`)
 	if err != nil {
-		return err
+		return Error(err)
 	}
 
 	tx, err = db.Begin()
 	if err != nil {
-		return err
+		return Error(err)
 	}
 
 	return nil
 }
 
 func closeDB() error {
-	commitDb()
+	if err := commitDb(); err != nil {
+		return err
+	}
+
 	db.Close()
 	return nil
 }
@@ -110,7 +113,9 @@ func SetData(data Data) {
 
 	dbOperations++
 	if dbOperations >= config.BufferedOperations {
-		commitDb()
+		if err := commitDb(); err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
@@ -120,11 +125,12 @@ func MapData(f Mapper) {
 
 // Save all the pending transactional data
 // Should be called when the dbMutex is hold by this goroutine
-func commitDb() {
+func commitDb() error {
 	if dbOperations > 0 {
 		if err := tx.Commit(); err != nil {
-			log.Fatal(err)
+			return Error(err)
 		}
 		dbOperations = 0
 	}
+	return nil
 }
