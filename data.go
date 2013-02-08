@@ -115,7 +115,7 @@ func SetData(data Data) {
 }
 
 func MapData(f Mapper) {
-
+	// TODO: Query the rows and iterate them using f
 }
 
 // Save all the pending transactional data

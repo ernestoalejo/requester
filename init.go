@@ -1,40 +1,36 @@
 package requester
 
 import (
-	"log"
 	"os"
 )
 
-func InitLibrary(c *Config) {
+func InitLibrary(c *Config) error {
 	if c.MaxMinute < c.MaxSimultaneous {
-		log.Fatalf("config not safe: max/min should be >= than simultaneous")
+		return Errorf("config not safe: max/min should be >= than simultaneous")
 	}
 
 	if err := os.MkdirAll("cache", 0766); err != nil {
-		log.Fatal(err)
+		return Error(err)
 	}
-
 	if err := os.MkdirAll("loggers", 0766); err != nil {
-		log.Fatal(err)
+		return Error(err)
 	}
 
 	if err := initLoggers(); err != nil {
-		log.Fatal(err)
+		return err
 	}
-
 	if err := initDB(); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	config = c
-
 	for i := int64(0); i < c.MaxSimultaneous; i++ {
 		go worker()
 	}
+
+	return nil
 }
 
-func CloseLibrary() {
-	if err := closeDB(); err != nil {
-		log.Fatal(err)
-	}
+func CloseLibrary() error {
+	return closeDB()
 }
