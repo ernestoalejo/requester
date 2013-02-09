@@ -147,8 +147,6 @@ func processResponse(req *Request, resp *Response) (reterr error) {
 	log.Printf("[%d -> %d] Pending %d reqs in queue \n", req.Id,
 		processed, len(queue))
 
-	// TODO: Save data
-	//saveDataRequest <- true
 	waitQueue.Done()
 	return nil
 }
