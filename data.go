@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/gob"
-	"log"
 	"sync"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -17,11 +16,7 @@ var (
 	dbOperations = 0
 )
 
-type Data interface {
-	Key() string
-}
-
-type Mapper func(data Data)
+type Mapper func(data interface{}) error
 
 func initDB() error {
 	var err error
@@ -57,64 +52,67 @@ func closeDB() error {
 	return nil
 }
 
-func GetData(data Data) {
+func GetData(key string, data interface{}) error {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
 
 	stmt, err := tx.Prepare(`SELECT Value FROM Data WHERE Key = ?`)
 	if err != nil {
-		log.Fatal(err)
+		return Error(err)
 	}
 
-	rows, err := stmt.Query(data.Key())
+	rows, err := stmt.Query(key)
 	if err != nil {
-		log.Fatal(err)
+		return Error(err)
 	}
 
-	var rawData []byte
+	var serialized []byte
 	for rows.Next() {
-		if rawData != nil {
-			log.Fatalf("more than one result for key: %s", data.Key())
+		if serialized != nil {
+			return Errorf("more than one result for key: %s", key)
 		}
-		if err := rows.Scan(&rawData); err != nil {
-			log.Fatal(err)
+		if err := rows.Scan(&serialized); err != nil {
+			return err
 		}
 	}
 	if err := rows.Err(); err != nil {
-		log.Fatal(err)
+		return Error(err)
 	}
-	if rawData == nil {
-		log.Fatalf("no rows found for key: %s", data.Key())
+	if serialized == nil {
+		return Errorf("no rows found for key: %s", key)
 	}
 
-	buf := bytes.NewBuffer(rawData)
+	buf := bytes.NewBuffer(serialized)
 	if err := gob.NewDecoder(buf).Decode(data); err != nil {
-		log.Fatal(err)
+		return Error(err)
 	}
+
+	return nil
 }
 
+/*
 func SetData(data Data) {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
 
 	stmt, err := tx.Prepare(`INSERT INTO Data VALUES (?, ?)`)
 	if err != nil {
-		log.Fatal(err)
+		return Error(err)
 	}
 
 	buf := bytes.NewBuffer(nil)
 	if err := gob.NewEncoder(buf).Encode(data); err != nil {
-		log.Fatal(err)
+		return Error(err)
 	}
 
-	if _, err := stmt.Exec(data.Key(), buf.Bytes()); err != nil {
-		log.Fatal(err)
+	if _, err := stmt.Exec(key, buf.Bytes()); err != nil {
+		return Error(err)
 	}
 
 	dbOperations++
 	if dbOperations >= config.BufferedOperations {
 		if err := commitDb(); err != nil {
-			log.Fatal(err)
+			return Error(err)
 		}
 	}
 }
@@ -122,7 +120,7 @@ func SetData(data Data) {
 func MapData(f Mapper) {
 	// TODO: Query the rows and iterate them using f
 }
-
+*/
 // Save all the pending transactional data
 // Should be called when the dbMutex is hold by this goroutine
 func commitDb() error {
