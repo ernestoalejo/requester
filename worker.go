@@ -112,6 +112,7 @@ func queueAgain(req *Request, err error) error {
 	if req.Retry > config.MaxRetries {
 		// TODO: Output the list of failed requests at the end (a new logger?)
 		errLogger.Printf("[%d] Max retries reached [%s]\n", req.Id, req.URL())
+		waitQueue.Done()
 		return nil
 	}
 

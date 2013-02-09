@@ -49,4 +49,5 @@ func Actions(actions []*Action) {
 	}
 
 	// TODO: Print stats on exit
+	// TODO: Print something to the actions log when finished
 }
