@@ -9,48 +9,50 @@ import (
 	"path/filepath"
 )
 
-func cachedResponse(req *Request) (*Response, bool) {
+func cachedResponse(req *Request) (*Response, error) {
 	f, err := os.Open(filepath.Join("cache", cacheName(req)))
 	if err != nil {
 		if !os.IsNotExist(err) {
-			errLogger.Printf("[%d] Cache read failed [%s]: %s\n", req.Id, err)
+			return nil, Error(err)
 		}
-		return nil, false
+		return nil, nil
 	}
 	defer f.Close()
 
 	resp := &Response{}
 	if err := gob.NewDecoder(f).Decode(resp); err != nil {
-		errLogger.Printf("[%d] Cache decoding failed [%s]: %s\n", req.Id, err)
+		return nil, Error(err)
 	}
 
 	actionsLogger.Printf("[%d] Request read from cache: %s \n", req.Id,
 		cacheName(req))
 
-	return resp, true
+	return resp, nil
 }
 
-func saveCache(req *Request, resp *Response) {
+func saveCache(req *Request, resp *Response) error {
 	f, err := os.Create(filepath.Join("cache", cacheName(req)))
 	if err != nil {
-		errLogger.Printf("[%d] Cache write failed [%s]: %s\n", req.Id, err)
-		return
+		return Error(err)
 	}
 	defer f.Close()
 
 	if err := gob.NewEncoder(f).Encode(resp); err != nil {
-		errLogger.Printf("[%d] Cache encoding failed [%s]: %s\n", req.Id, err)
+		return Error(err)
 	}
+
+	return nil
 }
 
-func deleteCache(req *Request) {
+func deleteCache(req *Request) error {
 	if err := os.Remove(filepath.Join("cache", cacheName(req))); err != nil {
 		if os.IsNotExist(err) {
-			return
+			return nil
 		}
 
-		errLogger.Printf("[%d] Cache delete failed [%s]: %s\n", req.Id, err)
+		return Error(err)
 	}
+	return nil
 }
 
 func cacheName(req *Request) string {

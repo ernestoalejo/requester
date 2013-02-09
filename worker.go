@@ -25,20 +25,25 @@ func worker() {
 func handleRequest(req *Request) error {
 	start := time.Now()
 
-	resp, cached := cachedResponse(req)
-	if !cached {
+	resp, err := cachedResponse(req)
+	if err != nil {
+		return err
+	}
+	if resp == nil {
 		resp = performRequest(req)
 		if resp == nil {
 			// Enqueued again for a later try
-			return
+			return nil
 		}
 
-		saveCache(req, resp)
+		if err := saveCache(req, resp); err != nil {
+			return err
+		}
 	}
 
 	processResponse(req, resp)
 
-	if !cached {
+	if resp == nil {
 		ns := time.Since(start).Nanoseconds()
 		min := 1 * 60 * 1e9 / (config.MaxMinute * config.MaxSimultaneous)
 		if ns < min {
