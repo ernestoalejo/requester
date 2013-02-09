@@ -11,7 +11,16 @@ type Action struct {
 	Help    string
 }
 
+var (
+	name = flag.String("name", "", "the name of the file to dump (dump action)")
+)
+
 func Actions(actions []*Action) {
+	// Add some internal actions to the list
+	actions = append(actions, []*Action{
+		{dump, "dump", "dump a file from cache"},
+	}...)
+
 	flags := make([]*bool, len(actions))
 	for i, action := range actions {
 		if action.Name == "" {
@@ -50,4 +59,11 @@ func Actions(actions []*Action) {
 
 	// TODO: Print stats on exit
 	// TODO: Print something to the actions log when finished
+}
+
+func dump() error {
+	if *name == "" {
+		return Errorf("name should not be empty")
+	}
+	return dumpCache(*name)
 }

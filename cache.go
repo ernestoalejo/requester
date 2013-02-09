@@ -55,6 +55,22 @@ func deleteCache(req *Request) error {
 	return nil
 }
 
+func dumpCache(name string) error {
+	f, err := os.Open(name)
+	if err != nil {
+		return Error(err)
+	}
+	defer f.Close()
+
+	resp := &Response{}
+	if err := gob.NewDecoder(f).Decode(resp); err != nil {
+		return Error(err)
+	}
+
+	fmt.Println(resp.Body)
+	return nil
+}
+
 func cacheName(req *Request) string {
 	h := md5.New()
 	io.WriteString(h, req.URL())
