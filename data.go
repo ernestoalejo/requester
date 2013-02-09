@@ -44,7 +44,7 @@ func initDB() error {
 }
 
 func closeDB() error {
-	if err := commitDb(); err != nil {
+	if err := commitDb(true); err != nil {
 		return err
 	}
 
@@ -90,8 +90,7 @@ func GetData(key string, data interface{}) error {
 	return nil
 }
 
-/*
-func SetData(data Data) {
+func SetData(key string, data interface{}) error {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
 
@@ -110,21 +109,24 @@ func SetData(data Data) {
 	}
 
 	dbOperations++
-	if dbOperations >= config.BufferedOperations {
-		if err := commitDb(); err != nil {
-			return Error(err)
-		}
+	if err := commitDb(false); err != nil {
+		return Error(err)
 	}
+	return nil
 }
 
+/*
 func MapData(f Mapper) {
 	// TODO: Query the rows and iterate them using f
 }
 */
+
 // Save all the pending transactional data
 // Should be called when the dbMutex is hold by this goroutine
-func commitDb() error {
-	if dbOperations > 0 {
+// If the commit is forced, the number of minimum operations before saving
+// will not be checked
+func commitDb(force bool) error {
+	if (force && dbOperations > 0) || dbOperations > config.BufferedOperations {
 		if err := tx.Commit(); err != nil {
 			return Error(err)
 		}
