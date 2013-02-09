@@ -17,7 +17,8 @@ var client = &http.Client{}
 // TODO: Wait for a task before handling it
 func worker() {
 	for {
-		errWrapper(handleRequest(popQueue()))
+		req := popQueue()
+		errWrapper(req, handleRequest(req))
 	}
 }
 

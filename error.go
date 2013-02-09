@@ -25,8 +25,8 @@ func Errorf(format string, args ...interface{}) error {
 	return Error(fmt.Errorf(format, args...))
 }
 
-func errWrapper(err error) {
+func errWrapper(req *Request, err error) {
 	if err != nil {
-		// TODO: Send the error by the right channel
+		errLogger.Printf("[%d] %s\n", req.Id, err)
 	}
 }
