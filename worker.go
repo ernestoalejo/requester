@@ -10,13 +10,16 @@ import (
 	"time"
 )
 
-var client = &http.Client{}
+var (
+	client   = &http.Client{}
+	workerCh chan bool
+)
 
 // Executed in parallel by the init module when starting the library
 // It handles the request and iterates
-// TODO: Wait for a task before handling it
 func worker() {
 	for {
+		<-workerCh
 		req := popQueue()
 		errWrapper(req, handleRequest(req))
 	}
@@ -107,6 +110,7 @@ func queueAgain(req *Request, err error) error {
 
 	req.Retry++
 	if req.Retry > config.MaxRetries {
+		// TODO: Output the list of failed requests at the end (a new logger?)
 		errLogger.Printf("[%d] Max retries reached [%s]\n", req.Id, req.URL())
 		return nil
 	}

@@ -23,6 +23,13 @@ func addQueue(req *Request) {
 	}
 
 	queue = append(queue, req)
+
+	// Non-blocking notification for a worker to start processing
+	// the request
+	select {
+	case workerCh <- true:
+	default:
+	}
 }
 
 func popQueue() *Request {
