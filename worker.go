@@ -1,7 +1,6 @@
 package requester
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"math"
@@ -30,18 +29,24 @@ func handleRequest(req *Request) error {
 		return err
 	}
 	if resp == nil {
-		resp = performRequest(req)
-		if resp == nil {
-			// Enqueued again for a later try
+		resp, err = performRequest(req)
+		if err != nil {
+			if err := queueAgain(req, err); err != nil {
+				return err
+			}
 			return nil
 		}
-
 		if err := saveCache(req, resp); err != nil {
 			return err
 		}
 	}
 
-	processResponse(req, resp)
+	if err := processResponse(req, resp); err != nil {
+		if err := queueAgain(req, err); err != nil {
+			return err
+		}
+		return nil
+	}
 
 	if resp == nil {
 		ns := time.Since(start).Nanoseconds()
@@ -55,30 +60,28 @@ func handleRequest(req *Request) error {
 	return nil
 }
 
-func performRequest(req *Request) *Response {
+func performRequest(req *Request) (*Response, error) {
 	actionsLogger.Printf("[%d] Make request...\n", req.Id)
 
 	resp, err := client.Do(req.Req)
 	if err != nil {
+		return nil, Error(err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		queueAgain(req, fmt.Errorf("req code not ok: %s", resp.Status))
-		return nil
+		return nil, Errorf("req code not ok: %s", resp.Status)
 	}
 
 	if config.LogNet {
 		reqDump, err := httputil.DumpRequestOut(req.Req, config.LogBody)
 		if err != nil {
-			queueAgain(req, err)
-			return nil
+			return nil, Error(err)
 		}
 
 		resDump, err := httputil.DumpResponse(resp, config.LogBody)
 		if err != nil {
-			queueAgain(req, err)
-			return nil
+			return nil, Error(err)
 		}
 
 		s := "===================================================================="
@@ -88,22 +91,23 @@ func performRequest(req *Request) *Response {
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		queueAgain(req, err)
-		return nil
+		return nil, Error(err)
 	}
 
 	actionsLogger.Printf("[%d] Request done!\n", req.Id)
 
-	return &Response{Body: string(body)}
+	return &Response{Body: string(body)}, nil
 }
 
-func queueAgain(req *Request, err error) {
-	deleteCache(req)
+func queueAgain(req *Request, err error) error {
+	if err := deleteCache(req); err != nil {
+		return err
+	}
 
 	req.Retry++
 	if req.Retry > config.MaxRetries {
-		// TODO: Don't exit, ignore this entry
-		log.Fatalf("[%d] Max retries reached [%s]\n", req.Id, req.URL())
+		errLogger.Printf("[%d] Max retries reached [%s]\n", req.Id, req.URL())
+		return nil
 	}
 
 	secs := math.Pow(2, float64(req.Retry))*100 + float64(rand.Int()%1000)
@@ -117,19 +121,20 @@ func queueAgain(req *Request, err error) {
 		time.Sleep(time.Duration(secs) * time.Millisecond)
 		req.Send()
 	}()
+
+	return nil
 }
 
-func processResponse(req *Request, resp *Response) {
+func processResponse(req *Request, resp *Response) (reterr error) {
 	defer func() {
 		if rec := recover(); rec != nil {
-			queueAgain(req, fmt.Errorf("panic recovered error: %s", rec))
+			reterr = Errorf("panic recovered error: %s", rec)
 		}
 	}()
 
 	actionsLogger.Printf("[%d] Processing response... \n", req.Id)
 	if err := config.Processor(req, resp); err != nil {
-		queueAgain(req, err)
-		return
+		return err
 	}
 	actionsLogger.Printf("[%d] Processing done! \n", req.Id)
 
@@ -140,4 +145,5 @@ func processResponse(req *Request, resp *Response) {
 	// TODO: Save data
 	//saveDataRequest <- true
 	waitQueue.Done()
+	return nil
 }

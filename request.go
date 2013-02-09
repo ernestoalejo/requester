@@ -13,6 +13,7 @@ type Request struct {
 func GET(url string) *Request {
 	r, err := http.NewRequest("GET", url, nil)
 	if err != nil {
+		// The URL was ill-formed. Exit directly, it's not a common error
 		panic(err)
 	}
 
