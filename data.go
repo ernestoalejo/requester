@@ -16,7 +16,7 @@ var (
 	dbOperations = 0
 )
 
-type Mapper func(data interface{}) error
+type Mapper func(key string, data interface{}) error
 
 func initDB() error {
 	var err error
@@ -115,11 +115,37 @@ func SetData(key string, data interface{}) error {
 	return nil
 }
 
-/*
-func MapData(f Mapper) {
-	// TODO: Query the rows and iterate them using f
+func MapData(f Mapper, placeholder interface{}) error {
+	dbMutex.Lock()
+	defer dbMutex.Unlock()
+
+	rows, err := tx.Query(`SELECT Key, Value FROM Data`)
+	if err != nil {
+		return Error(err)
+	}
+
+	for rows.Next() {
+		var key string
+		var serialized []byte
+		if err := rows.Scan(&key, &serialized); err != nil {
+			return err
+		}
+
+		buf := bytes.NewBuffer(serialized)
+		if err := gob.NewDecoder(buf).Decode(placeholder); err != nil {
+			return Error(err)
+		}
+
+		if err := f(key, placeholder); err != nil {
+			return Error(err)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return Error(err)
+	}
+
+	return nil
 }
-*/
 
 // Save all the pending transactional data
 // Should be called when the dbMutex is hold by this goroutine
