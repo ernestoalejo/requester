@@ -113,7 +113,7 @@ func SetData(key string, data interface{}) error {
 		return Error(err)
 	}
 
-	if _, err := stmt.Exec(key, buf.Bytes()); err != nil {
+	if _, err := stmt.Exec(buf.Bytes(), key); err != nil {
 		return Error(err)
 	}
 
@@ -128,7 +128,7 @@ func MapData(f Mapper, placeholder interface{}) error {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
 
-	rows, err := tx.Query(`SELECT Key, Value FROM Data`)
+	rows, err := db.Query(`SELECT Key, Value FROM Data`)
 	if err != nil {
 		return Error(err)
 	}
