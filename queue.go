@@ -9,6 +9,7 @@ var (
 	queueMutex = &sync.Mutex{}
 	waitQueue  = sync.WaitGroup{}
 	curId      = 0
+	queueCh    = make(chan bool)
 )
 
 func addQueue(req *Request) {
@@ -27,14 +28,27 @@ func addQueue(req *Request) {
 	// Non-blocking notification for a worker to start processing
 	// the request
 	select {
-	case workerCh <- true:
+	case queueCh <- true:
 	default:
 	}
 }
 
 func popQueue() *Request {
+	r := getQueue()
+	for r == nil {
+		<-queueCh
+		r = getQueue()
+	}
+	return r
+}
+
+func getQueue() *Request {
 	queueMutex.Lock()
 	defer queueMutex.Unlock()
+
+	if len(queue) == 0 {
+		return nil
+	}
 
 	var req *Request
 	req, queue = queue[0], queue[1:]

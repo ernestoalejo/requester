@@ -11,15 +11,13 @@ import (
 )
 
 var (
-	client   = &http.Client{}
-	workerCh chan bool
+	client = &http.Client{}
 )
 
 // Executed in parallel by the init module when starting the library
 // It handles the request and iterates
 func worker() {
 	for {
-		<-workerCh
 		req := popQueue()
 		errWrapper(req, handleRequest(req))
 	}

@@ -152,6 +152,7 @@ func MapData(f Mapper, placeholder interface{}) error {
 // If the commit is forced, the number of minimum operations before saving
 // will not be checked
 func commitDb(force bool) error {
+	// TODO: Message whent the data is commit to disk (and the number of operations)
 	if (force && dbOperations > 0) || dbOperations > config.BufferedOperations {
 		if err := tx.Commit(); err != nil {
 			return Error(err)

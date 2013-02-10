@@ -28,7 +28,6 @@ func InitLibrary(c *Config) error {
 
 	config = c
 
-	workerCh = make(chan bool, c.MaxSimultaneous)
 	for i := int64(0); i < c.MaxSimultaneous; i++ {
 		go worker()
 	}
