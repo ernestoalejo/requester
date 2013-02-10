@@ -98,7 +98,7 @@ func performRequest(req *Request) (*Response, error) {
 
 	actionsLogger.Printf("[%d] Request done!\n", req.Id)
 
-	return &Response{Body: string(body)}, nil
+	return &Response{Body: UTF8(string(body))}, nil
 }
 
 func queueAgain(req *Request, err error) error {
