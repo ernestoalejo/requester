@@ -90,15 +90,17 @@ func (r *Response) MergeResults(results []*Result) (*ResultList, error) {
 			return nil, Errorf("more results for derivated list than in the base one")
 		}
 
-		// Merge the results with the base list
 		matchs[i] = make([][]string, len(baseMatchs))
 		cur := 0
-		for j, p := range ps {
-			for cur < len(basePos)-1 && basePos[cur+1][0] < p[0] {
+		for j, _ := range matchs[i] {
+			// If the next section it's still valid, skip this one with an empty
+			// list; otherwise fill it with the matched contents
+			if cur >= len(ps) || j < len(basePos)-1 && basePos[j+1][0] < ps[cur][0] {
 				matchs[i][j] = make([]string, results[0].Len)
+			} else {
+				matchs[i][j] = ms[cur]
 				cur++
 			}
-			matchs[i][cur] = ms[j]
 		}
 	}
 
