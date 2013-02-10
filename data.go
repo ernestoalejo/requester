@@ -94,6 +94,9 @@ func SetData(key string, data interface{}) error {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
 
+	// TODO: Use this idiom for repeated keys
+	// INSERT OR IGNORE INTO visits VALUES ($ip, 0);
+	// UPDATE visits SET hits = hits + 1 WHERE ip LIKE $ip;
 	stmt, err := tx.Prepare(`INSERT INTO Data VALUES (?, ?)`)
 	if err != nil {
 		return Error(err)
@@ -152,12 +155,21 @@ func MapData(f Mapper, placeholder interface{}) error {
 // If the commit is forced, the number of minimum operations before saving
 // will not be checked
 func commitDb(force bool) error {
-	// TODO: Message whent the data is commit to disk (and the number of operations)
 	if (force && dbOperations > 0) || dbOperations > config.BufferedOperations {
+		actionsLogger.Printf("Commiting %d results...\n", dbOperations)
+
 		if err := tx.Commit(); err != nil {
 			return Error(err)
 		}
 		dbOperations = 0
+
+		var err error
+		tx, err = db.Begin()
+		if err != nil {
+			return Error(err)
+		}
+
+		actionsLogger.Printf("Done commiting!")
 	}
 	return nil
 }

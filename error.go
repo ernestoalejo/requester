@@ -27,6 +27,7 @@ func Errorf(format string, args ...interface{}) error {
 
 func errWrapper(req *Request, err error) {
 	if err != nil {
+		// TODO: Print something to the stdout, to see the errors log
 		errLogger.Printf("[%d] %s\n", req.Id, err)
 	}
 }
