@@ -94,10 +94,16 @@ func SetData(key string, data interface{}) error {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
 
-	// TODO: Use this idiom for repeated keys
-	// INSERT OR IGNORE INTO visits VALUES ($ip, 0);
-	// UPDATE visits SET hits = hits + 1 WHERE ip LIKE $ip;
-	stmt, err := tx.Prepare(`INSERT INTO Data VALUES (?, ?)`)
+	stmt, err := tx.Prepare(`INSERT OR IGNORE INTO Data VALUES (?, NULL)`)
+	if err != nil {
+		return Error(err)
+	}
+
+	if _, err := stmt.Exec(key); err != nil {
+		return err
+	}
+
+	stmt, err = tx.Prepare(`UPDATE Data SET Value = ? WHERE Key = ?`)
 	if err != nil {
 		return Error(err)
 	}
