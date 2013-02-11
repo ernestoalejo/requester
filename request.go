@@ -30,6 +30,8 @@ func POST(u string, values url.Values) *Request {
 		panic(err)
 	}
 
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
 	return &Request{Req: r}
 }
 
