@@ -1,6 +1,7 @@
 package requester
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"math"
@@ -75,6 +76,8 @@ func performRequest(req *Request) (*Response, error) {
 		}
 	}
 
+	start := time.Now()
+
 	resp, err := client.Do(req.Req)
 	if err != nil {
 		return nil, Error(err)
@@ -101,7 +104,15 @@ func performRequest(req *Request) (*Response, error) {
 		return nil, Error(err)
 	}
 
-	actionsLogger.Printf("[%d] Request done!\n", req.Id)
+	ms := time.Since(start).Nanoseconds() / 1e6
+	var reqtime string
+	if ms > 1000 {
+		reqtime = fmt.Sprintf("%.3f s", float64(ms)/1000.)
+	} else {
+		reqtime = fmt.Sprintf("%d ms", ms)
+	}
+
+	actionsLogger.Printf("[%d] Request done in %s!\n", req.Id, reqtime)
 
 	return &Response{Body: convertUTF8(resp, string(body))}, nil
 }
