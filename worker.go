@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/http/httputil"
+	"strings"
 	"time"
 )
 
@@ -102,7 +103,7 @@ func performRequest(req *Request) (*Response, error) {
 
 	actionsLogger.Printf("[%d] Request done!\n", req.Id)
 
-	return &Response{Body: UTF8(string(body))}, nil
+	return &Response{Body: convertUTF8(resp, string(body))}, nil
 }
 
 func queueAgain(req *Request, err error) error {
@@ -152,4 +153,29 @@ func processResponse(req *Request, resp *Response) (reterr error) {
 
 	waitQueue.Done()
 	return nil
+}
+
+// Try to detect the encoding of the page. First trying to read a UTF-8
+// encoding from the Content-Type header. Then it tries to read the <meta> tag
+// in the first 1000 chars of the response. If all fails, it's supposed to
+// use ISO-8859-1, and it's converted back to UTF-8.
+func convertUTF8(resp *http.Response, s string) string {
+	contentType := strings.ToLower(resp.Header.Get("Content-Type"))
+	if strings.Contains(contentType, "charset=utf-8") {
+		return s
+	}
+
+	body := strings.ToLower(s[:min(len(s), 1000)])
+	if strings.Contains(body, "charset=utf-8") {
+		return s
+	}
+
+	return UTF8(s)
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

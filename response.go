@@ -8,33 +8,23 @@ type Response struct {
 	Body string
 }
 
-func (r *Response) ReList(re *regexp.Regexp) ([][]string, [][]int) {
+// Apply the regular expression and return the list of all sub-matches
+// and a list of the positions. The positions are unique, and calculated
+// doing an average of the positions of all sub-matches.
+func (r *Response) ReList(re *regexp.Regexp) ([][]string, []int) {
 	matchs := re.FindAllStringSubmatch(r.Body, -1)
 	pos := re.FindAllStringSubmatchIndex(r.Body, -1)
 
 	// Merge positions into a single value (the start one)
-	newpos := make([][]int, len(pos))
+	newpos := make([]int, len(pos))
 	for i, p := range pos {
-		newpos[i] = make([]int, len(p)/2)
-
-		skipNext := false
-		for j, n := range p {
-			if skipNext {
-				skipNext = false
-				continue
-			}
-
-			newpos[i][j/2] = n
-			skipNext = true
+		sum := 0
+		items := 0
+		for _, n := range p {
+			sum += n
+			items++
 		}
-
-		if len(matchs[i]) != len(newpos[i]) {
-			panic("sublengths doesn't match")
-		}
-	}
-
-	if len(matchs) != len(pos) {
-		panic("lengths doesn't match")
+		newpos[i] = sum / items
 	}
 
 	return matchs, newpos
@@ -95,8 +85,8 @@ func (r *Response) MergeResults(results []*Result) (*ResultList, error) {
 		for j, _ := range matchs[i] {
 			// If the next section it's still valid, skip this one with an empty
 			// list; otherwise fill it with the matched contents
-			if cur >= len(ps) || j < len(basePos)-1 && basePos[j+1][0] < ps[cur][0] {
-				matchs[i][j] = make([]string, results[0].Len)
+			if cur >= len(ps) || (j < len(basePos)-1 && basePos[j+1] < ps[cur]) {
+				matchs[i][j] = make([]string, results[i].Len)
 			} else {
 				matchs[i][j] = ms[cur]
 				cur++
