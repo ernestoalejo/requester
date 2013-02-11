@@ -22,11 +22,9 @@ func GET(url string) *Request {
 	return &Request{Req: r}
 }
 
-func POST(url string, values url.Values) *Request {
-	body := bytes.NewBuffer(nil)
-	body.WriteString(values.Encode())
-
-	r, err := http.NewRequest("POST", url, body)
+func POST(u string, values url.Values) *Request {
+	body := bytes.NewBufferString(values.Encode())
+	r, err := http.NewRequest("POST", u, body)
 	if err != nil {
 		// The URL was ill-formed. Exit directly, it's not a common error
 		panic(err)
@@ -41,4 +39,8 @@ func (r *Request) Send() {
 
 func (r *Request) URL() string {
 	return r.Req.URL.String()
+}
+
+func (r *Request) Header(key, value string) {
+	r.Req.Header.Set(key, value)
 }

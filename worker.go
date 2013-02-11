@@ -65,22 +65,22 @@ func handleRequest(req *Request) error {
 func performRequest(req *Request) (*Response, error) {
 	actionsLogger.Printf("[%d] Make request...\n", req.Id)
 
+	var reqDump []byte
+	if config.LogNet {
+		var err error
+		reqDump, err = httputil.DumpRequestOut(req.Req, config.LogBody)
+		if err != nil {
+			return nil, Error(err)
+		}
+	}
+
 	resp, err := client.Do(req.Req)
 	if err != nil {
 		return nil, Error(err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return nil, Errorf("req code not ok: %s", resp.Status)
-	}
-
 	if config.LogNet {
-		reqDump, err := httputil.DumpRequestOut(req.Req, config.LogBody)
-		if err != nil {
-			return nil, Error(err)
-		}
-
 		resDump, err := httputil.DumpResponse(resp, config.LogBody)
 		if err != nil {
 			return nil, Error(err)
@@ -89,6 +89,10 @@ func performRequest(req *Request) (*Response, error) {
 		s := "===================================================================="
 		netLogger.Printf("$REQUEST [%d]$\n%s\n\n%s\n\n%s\n\n\n\n", req.Id,
 			reqDump, s, resDump)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return nil, Errorf("req code not ok: %s", resp.Status)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
