@@ -57,7 +57,7 @@ func GetData(key string, data interface{}) error {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
 
-	if err := commitDb(); err != nil {
+	if err := commitDb(false); err != nil {
 		return err
 	}
 
