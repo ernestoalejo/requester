@@ -17,6 +17,7 @@ var (
 )
 
 type Mapper func(key string, data interface{}) error
+type Creator func() interface{}
 
 func initDB() error {
 	var err error
@@ -124,7 +125,7 @@ func SetData(key string, data interface{}) error {
 	return nil
 }
 
-func MapData(f Mapper, placeholder interface{}) error {
+func MapData(f Mapper, creator Creator) error {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
 
@@ -140,12 +141,13 @@ func MapData(f Mapper, placeholder interface{}) error {
 			return err
 		}
 
+		data := creator()
 		buf := bytes.NewBuffer(serialized)
-		if err := gob.NewDecoder(buf).Decode(placeholder); err != nil {
+		if err := gob.NewDecoder(buf).Decode(data); err != nil {
 			return Error(err)
 		}
 
-		if err := f(key, placeholder); err != nil {
+		if err := f(key, data); err != nil {
 			return Error(err)
 		}
 	}
