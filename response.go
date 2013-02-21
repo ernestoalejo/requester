@@ -30,6 +30,16 @@ func (r *Response) ReList(re *regexp.Regexp) ([][]string, []int) {
 	return matchs, newpos
 }
 
+func (r *Response) Re(re *regexp.Regexp) ([]string, []int) {
+	m, p := r.ReList(re)
+	if m != nil {
+		return m[0], p
+	}
+	return nil, nil
+}
+
+// ==================================================================
+
 type Result struct {
 	Re  *regexp.Regexp
 	Len int

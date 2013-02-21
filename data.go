@@ -57,7 +57,11 @@ func GetData(key string, data interface{}) error {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
 
-	stmt, err := tx.Prepare(`SELECT Value FROM Data WHERE Key = ?`)
+	if err := commitDb(); err != nil {
+		return err
+	}
+
+	stmt, err := db.Prepare(`SELECT Value FROM Data WHERE Key = ?`)
 	if err != nil {
 		return Error(err)
 	}
