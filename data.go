@@ -28,7 +28,7 @@ func initDB() error {
 
 	_, err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS Data (
-			Key VARCHAR(200) PRIMARY KEY,
+			Key VARCHAR(2000) PRIMARY KEY,
 			Value LONGBLOB
 		)
 	`)
