@@ -1,9 +1,5 @@
 package requester
 
-import (
-	"strings"
-)
-
 func AssertLen(lst [][]string, n int) {
 	for _, x := range lst {
 		if len(x) != n {
@@ -19,9 +15,4 @@ func UTF8(iso8859_1 string) string {
 		buf[i] = rune(b)
 	}
 	return string(buf)
-}
-
-func Entities(s string) string {
-	s = strings.Replace(s, "&amp;", "&", -1)
-	return s
 }
