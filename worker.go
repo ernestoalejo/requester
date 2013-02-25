@@ -176,7 +176,7 @@ func convertUTF8(resp *http.Response, s string) string {
 		return s
 	}
 
-	body := strings.ToLower(s[:min(len(s), 1000)])
+	body := strings.ToLower(s[:min(len(s), 10000)])
 	if strings.Contains(body, "charset=utf-8") {
 		return s
 	}
