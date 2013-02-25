@@ -5,17 +5,13 @@ import (
 )
 
 var (
-	queue      = []*Request{}
-	queueMutex = &sync.Mutex{}
-	waitQueue  = sync.WaitGroup{}
-	curId      = 0
-	queueCh    = make(chan bool)
+	queue     = []*Request{}
+	queueCh   = make(chan *Request, 500)
+	curId     = 0
+	waitQueue = &sync.WaitGroup{}
 )
 
 func addQueue(req *Request) {
-	queueMutex.Lock()
-	defer queueMutex.Unlock()
-
 	if req.Id == 0 {
 		curId++
 		req.Id = curId
@@ -23,34 +19,9 @@ func addQueue(req *Request) {
 		waitQueue.Add(1)
 	}
 
-	queue = append(queue, req)
-
-	// Non-blocking notification for a worker to start processing
-	// the request
-	select {
-	case queueCh <- true:
-	default:
-	}
+	queueCh <- req
 }
 
 func popQueue() *Request {
-	r := getQueue()
-	for r == nil {
-		<-queueCh
-		r = getQueue()
-	}
-	return r
-}
-
-func getQueue() *Request {
-	queueMutex.Lock()
-	defer queueMutex.Unlock()
-
-	if len(queue) == 0 {
-		return nil
-	}
-
-	var req *Request
-	req, queue = queue[0], queue[1:]
-	return req
+	return <-queueCh
 }
