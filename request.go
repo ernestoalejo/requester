@@ -10,6 +10,7 @@ type Request struct {
 	Id    int
 	Req   *http.Request
 	Retry int
+	Data  interface{}
 }
 
 func GET(url string) *Request {

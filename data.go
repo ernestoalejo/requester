@@ -167,6 +167,10 @@ func SetData(key string, data interface{}) error {
 }
 
 func MapData(f Mapper, creator Creator) error {
+	return MapDataLimit(f, creator, -1)
+}
+
+func MapDataLimit(f Mapper, creator Creator, limit int) error {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
 
@@ -174,6 +178,8 @@ func MapData(f Mapper, creator Creator) error {
 	if err != nil {
 		return Error(err)
 	}
+
+	count := 0
 	for rows.Next() {
 		var key string
 		var serialized []byte
@@ -189,6 +195,11 @@ func MapData(f Mapper, creator Creator) error {
 
 		if err := f(key, data); err != nil {
 			return Error(err)
+		}
+
+		count++
+		if limit > -1 && count >= limit {
+			break
 		}
 	}
 	if err := rows.Err(); err != nil {

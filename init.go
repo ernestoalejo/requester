@@ -27,11 +27,6 @@ func InitLibrary(c *Config) error {
 	}
 
 	config = c
-
-	for i := int64(0); i < c.MaxSimultaneous; i++ {
-		go worker()
-	}
-
 	return nil
 }
 

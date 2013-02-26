@@ -53,6 +53,8 @@ func Actions(actions []*Action) {
 		return
 	}
 
+	initQueue()
+
 	if err := CloseLibrary(); err != nil {
 		fmt.Println(err)
 	}

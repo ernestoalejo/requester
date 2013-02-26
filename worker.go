@@ -159,9 +159,8 @@ func processResponse(req *Request, resp *Response) (reterr error) {
 	actionsLogger.Printf("[%d] Processing done! \n", req.Id)
 
 	processed := GetCounter(COUNTER_PROCESSED).Increment()
-	pending := GetCounter(COUNTER_PENDING).Decrement()
 	log.Printf("[%d -> %d] Pending %d reqs in queue \n", req.Id,
-		processed, pending)
+		processed, len(queue))
 
 	waitQueue.Done()
 	return nil
