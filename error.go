@@ -2,6 +2,7 @@ package requester
 
 import (
 	"fmt"
+	"log"
 	"runtime/debug"
 )
 
@@ -27,7 +28,7 @@ func Errorf(format string, args ...interface{}) error {
 
 func errWrapper(req *Request, err error) {
 	if err != nil {
-		// TODO: Print something to the stdout, to see the errors log
+		log.Printf("[%d] An error ocurred !\n", req.Id)
 		errLogger.Printf("[%d] %s\n", req.Id, err)
 	}
 }

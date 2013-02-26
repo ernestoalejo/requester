@@ -14,6 +14,8 @@ var (
 	tx           *sql.Tx
 	dbMutex      = &sync.Mutex{}
 	dbOperations = 0
+
+	selectStmt, insertStmt, updateStmt *sql.Stmt
 )
 
 type Mapper func(key string, data interface{}) error
@@ -21,7 +23,7 @@ type Creator func() interface{}
 
 func initDB() error {
 	var err error
-	db, err = sql.Open("sqlite3", "./data.db")
+	db, err = sql.Open("sqlite3", "file:./data.db?cache=shared&mode=rwc")
 	if err != nil {
 		return Error(err)
 	}
@@ -41,6 +43,30 @@ func initDB() error {
 		return Error(err)
 	}
 
+	selectStmt, err = db.Prepare(`SELECT Value FROM Data WHERE Key = ?`)
+	if err != nil {
+		return Error(err)
+	}
+
+	if err := prepareTransactionalStmt(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func prepareTransactionalStmt() error {
+	var err error
+
+	insertStmt, err = tx.Prepare(`INSERT OR IGNORE INTO Data VALUES (?, NULL)`)
+	if err != nil {
+		return Error(err)
+	}
+	updateStmt, err = tx.Prepare(`UPDATE Data SET Value = ? WHERE Key = ?`)
+	if err != nil {
+		return Error(err)
+	}
+
 	return nil
 }
 
@@ -49,6 +75,8 @@ func closeDB() error {
 		return err
 	}
 
+	selectStmt.Close()
+	insertStmt.Close()
 	db.Close()
 	return nil
 }
@@ -61,16 +89,11 @@ func GetData(key string, data interface{}) error {
 		return err
 	}
 
-	stmt, err := db.Prepare(`SELECT Value FROM Data WHERE Key = ?`)
+	rows, err := selectStmt.Query(key)
 	if err != nil {
 		return Error(err)
 	}
-
-	rows, err := stmt.Query(key)
-	if err != nil {
-		return Error(err)
-	}
-
+	defer rows.Close()
 	var serialized []byte
 	for rows.Next() {
 		if serialized != nil {
@@ -99,26 +122,14 @@ func SetData(key string, data interface{}) error {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
 
-	stmt, err := tx.Prepare(`INSERT OR IGNORE INTO Data VALUES (?, NULL)`)
-	if err != nil {
-		return Error(err)
-	}
-
-	if _, err := stmt.Exec(key); err != nil {
+	if _, err := insertStmt.Exec(key); err != nil {
 		return err
 	}
-
-	stmt, err = tx.Prepare(`UPDATE Data SET Value = ? WHERE Key = ?`)
-	if err != nil {
-		return Error(err)
-	}
-
 	buf := bytes.NewBuffer(nil)
 	if err := gob.NewEncoder(buf).Encode(data); err != nil {
 		return Error(err)
 	}
-
-	if _, err := stmt.Exec(buf.Bytes(), key); err != nil {
+	if _, err := updateStmt.Exec(buf.Bytes(), key); err != nil {
 		return Error(err)
 	}
 
@@ -137,7 +148,6 @@ func MapData(f Mapper, creator Creator) error {
 	if err != nil {
 		return Error(err)
 	}
-
 	for rows.Next() {
 		var key string
 		var serialized []byte
@@ -179,6 +189,10 @@ func commitDb(force bool) error {
 		tx, err = db.Begin()
 		if err != nil {
 			return Error(err)
+		}
+
+		if err := prepareTransactionalStmt(); err != nil {
+			return err
 		}
 
 		actionsLogger.Printf("Done commiting!")

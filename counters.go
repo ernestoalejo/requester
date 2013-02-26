@@ -6,6 +6,7 @@ import (
 
 const (
 	COUNTER_PROCESSED = "processed"
+	COUNTER_PENDING   = "pending"
 )
 
 var (
