@@ -16,11 +16,14 @@ var (
 	client = &http.Client{}
 )
 
-// Executed in parallel by the init module when starting the library
+// Executed in parallel by the queue routines when starting the library
 // It handles the request and iterates
 func worker() {
 	for {
 		req := popQueue()
+		if req == nil {
+			return
+		}
 		errWrapper(req, handleRequest(req))
 	}
 }

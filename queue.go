@@ -48,6 +48,13 @@ func initQueue() {
 }
 
 func popQueue() *Request {
+	queueMutex.Lock()
+	defer queueMutex.Unlock()
+
+	if len(queue) == 0 {
+		return nil
+	}
+
 	var r *Request
 	r, queue = queue[len(queue)-1], queue[:len(queue)-1]
 	return r
