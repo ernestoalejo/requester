@@ -20,11 +20,15 @@ func addQueue(req *Request) {
 		panic("request added after the work has started")
 	}
 
-	if req.Id == 0 {
-		curId++
-		req.Id = curId
-		waitQueue.Add(1)
-	}
+	curId++
+	req.Id = curId
+	waitQueue.Add(1)
+	queue = append(queue, req)
+}
+
+func reAddQueue(req *Request) {
+	queueMutex.Lock()
+	defer queueMutex.Unlock()
 	queue = append(queue, req)
 }
 

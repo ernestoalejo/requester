@@ -142,7 +142,7 @@ func queueAgain(req *Request, err error) error {
 
 	go func() {
 		time.Sleep(time.Duration(secs) * time.Millisecond)
-		req.Send()
+		reAddQueue(req)
 	}()
 
 	return nil
