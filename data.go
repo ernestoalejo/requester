@@ -85,7 +85,7 @@ func GetData(key string, data interface{}) error {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
 
-	if err := commitDb(false); err != nil {
+	if err := commitDb(true); err != nil {
 		return err
 	}
 
@@ -100,7 +100,7 @@ func GetData(key string, data interface{}) error {
 			return Errorf("more than one result for key: %s", key)
 		}
 		if err := rows.Scan(&serialized); err != nil {
-			return err
+			return Error(err)
 		}
 	}
 	if err := rows.Err(); err != nil {
@@ -116,6 +116,32 @@ func GetData(key string, data interface{}) error {
 	}
 
 	return nil
+}
+
+func CountData() (int, error) {
+	dbMutex.Lock()
+	defer dbMutex.Unlock()
+
+	if err := commitDb(true); err != nil {
+		return 0, err
+	}
+
+	rows, err := db.Query(`SELECT COUNT(*) FROM Data;`)
+	if err != nil {
+		return 0, Error(err)
+	}
+	defer rows.Close()
+	var count int
+	for rows.Next() {
+		if err := rows.Scan(&count); err != nil {
+			return 0, Error(err)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return 0, Error(err)
+	}
+
+	return count, nil
 }
 
 func SetData(key string, data interface{}) error {
@@ -152,7 +178,7 @@ func MapData(f Mapper, creator Creator) error {
 		var key string
 		var serialized []byte
 		if err := rows.Scan(&key, &serialized); err != nil {
-			return err
+			return Error(err)
 		}
 
 		data := creator()
