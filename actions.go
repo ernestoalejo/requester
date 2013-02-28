@@ -53,10 +53,11 @@ func Actions(actions []*Action) {
 		return
 	}
 
-	initQueue()
-
-	if err := CloseLibrary(); err != nil {
-		fmt.Println(err)
+	if config != nil {
+		initQueue()
+		if err := CloseLibrary(); err != nil {
+			fmt.Println(err)
+		}
 	}
 
 	// TODO: Print stats on exit
