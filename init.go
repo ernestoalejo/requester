@@ -31,10 +31,6 @@ func InitLibrary(c *Config) error {
 }
 
 func CloseLibrary() error {
-	if config == nil {
-		return nil
-	}
-
 	waitQueue.Wait()
 	return closeDB()
 }
